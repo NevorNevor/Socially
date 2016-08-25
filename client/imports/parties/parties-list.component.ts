@@ -8,7 +8,7 @@ import { Party } from '../../../both/interfaces/party.interface';
 import { Parties }   from '../../../both/collections/parties.collection';
 import { PartiesFormComponent } from './parties-form.component';
 import { ReactiveVar } from 'meteor/reactive-var';
-import { PaginationService, PaginationControlsCmp } from 'ng2-pagination';
+import { PaginatePipe, PaginationService, PaginationControlsCmp } from 'ng2-pagination';
 
 import template from './parties-list.component.html';
 
@@ -16,6 +16,7 @@ import template from './parties-list.component.html';
   selector: 'parties-list',
   template,
   viewProviders: [PaginationService],
+  pipes: [PaginatePipe],
   directives: [PartiesFormComponent, ROUTER_DIRECTIVES, LoginButtons, PaginationControlsCmp]
 })
 export class PartiesListComponent extends MeteorComponent implements OnInit {
@@ -23,6 +24,7 @@ export class PartiesListComponent extends MeteorComponent implements OnInit {
   pageSize: number = 10;
   curPage: ReactiveVar<number> = new ReactiveVar<number>(1);
   nameOrder: number = 1;
+  searchedLocation: ReactiveVar<string> = new ReactiveVar<string>("");
   loading: boolean = false;
 
   constructor(private paginationService: PaginationService) {
@@ -35,9 +37,10 @@ export class PartiesListComponent extends MeteorComponent implements OnInit {
       itemsPerPage: this.pageSize,
       currentPage: this.curPage.get(),
       totalItems: 30,
-    });
+    });   
     this.autorun(() => {
-      const options = {
+      console.log("autorun " + this.curPage.get() + " " + `/${this.searchedLocation.get()}/`);
+      const options =  {
         limit: this.pageSize,
         skip: (this.curPage.get() - 1) * this.pageSize,
         sort: { name: this.nameOrder }
@@ -46,8 +49,8 @@ export class PartiesListComponent extends MeteorComponent implements OnInit {
       this.loading = true;
       this.paginationService.setCurrentPage(this.paginationService.defaultId, this.curPage.get());
 
-      this.subscribe('parties', options, () => {
-        this.parties = Parties.find({}, { sort: { name: this.nameOrder } });
+      this.subscribe('parties', options, this.searchedLocation.get(), () => {
+        this.parties = Parties.find({}, { sort: { name: this.nameOrder }});
         this.loading = false;
       }, true);
     });
@@ -62,6 +65,7 @@ export class PartiesListComponent extends MeteorComponent implements OnInit {
   }
 
   search(value: string) {
-    this.parties = Parties.find(value ? { location: value } : {});
+    this.curPage.set(1);
+    this.searchedLocation.set(value);
   }
 }

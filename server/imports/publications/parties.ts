@@ -1,8 +1,8 @@
 import {Parties} from '../../../both/collections/parties.collection';
 import {Meteor} from 'meteor/meteor';
 
-function buildQuery(partyId?: string): Object {
-    const isAvailable = {
+function buildQuery(partyId?: string, location?: string): Object {
+    let isAvailable: Object = {
         $or: [
             { 'public': true },
             {
@@ -13,7 +13,13 @@ function buildQuery(partyId?: string): Object {
             }
         ]
     };
-
+    if (location)
+        isAvailable = {
+            $and: [
+                isAvailable,
+                { location: { $regex: `${location}` , $options: "i"} }
+            ]
+        };
 
     if (partyId) {
         return { $and: [{ _id: partyId }, isAvailable] };
@@ -22,8 +28,10 @@ function buildQuery(partyId?: string): Object {
     return isAvailable;
 }
 
-Meteor.publish('parties', function (options: any) {
-    return Parties.find(buildQuery.call(this, options));
+Meteor.publish('parties', function (options: any, location: string) {
+    let select = buildQuery.call(this, null, location);
+    console.log(select);
+    return Parties.find(select, options);
 });
 
 Meteor.publish('party', function (partyId: string) {
